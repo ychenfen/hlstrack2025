@@ -157,9 +157,9 @@ struct choleskyTraits<LowerTriangularL,
     typedef ap_fixed<2 + (W2 - I2) + W2, 2 + (W2 - I2), AP_RND_CONV, AP_SAT, 0> RECIP_DIAG_T;
     typedef hls::x_complex<ap_fixed<W2, I2, AP_RND_CONV, AP_SAT, 0> >
         L_OUTPUT_T; // Takes new L value.  Same as L output but saturation set
-    static const int ARCH = 1;
+    static const int ARCH = 2;
     static const int INNER_II = 1;
-    static const int UNROLL_FACTOR = 1;
+    static const int UNROLL_FACTOR = 4;
     static const int UNROLL_DIM = (LowerTriangularL == true ? 1 : 2);
     static const int ARCH2_ZERO_LOOP = true;
 };
@@ -194,9 +194,9 @@ struct choleskyTraits<LowerTriangularL,
     typedef ap_fixed<2 + (W2 - I2) + W2, 2 + (W2 - I2), AP_RND_CONV, AP_SAT, 0> RECIP_DIAG_T;
     typedef std::complex<ap_fixed<W2, I2, AP_RND_CONV, AP_SAT, 0> >
         L_OUTPUT_T; // Takes new L value.  Same as L output but saturation set
-    static const int ARCH = 1;
+    static const int ARCH = 2;
     static const int INNER_II = 1;
-    static const int UNROLL_FACTOR = 1;
+    static const int UNROLL_FACTOR = 4;
     static const int UNROLL_DIM = (LowerTriangularL == true ? 1 : 2);
     static const int ARCH2_ZERO_LOOP = true;
 };
@@ -410,6 +410,11 @@ col_loop:
 // choleskyAlt: Alternative architecture with improved latency at the expense of higher resource
 template <bool LowerTriangularL, int RowsColsA, typename CholeskyTraits, class InputType, class OutputType>
 int choleskyAlt(const InputType A[RowsColsA][RowsColsA], OutputType L[RowsColsA][RowsColsA]) {
+#pragma HLS ARRAY_PARTITION variable=A cyclic factor=2 dim=1
+#pragma HLS ARRAY_PARTITION variable=A cyclic factor=2 dim=2
+#pragma HLS ARRAY_PARTITION variable=L cyclic factor=2 dim=1
+#pragma HLS ARRAY_PARTITION variable=L cyclic factor=2 dim=2
+
     int return_code = 0;
 
     // Optimize internal memories
@@ -418,7 +423,9 @@ int choleskyAlt(const InputType A[RowsColsA][RowsColsA], OutputType L[RowsColsA]
     // - Requires additional logic to generate the memory indexes
     // - For smaller matrix sizes there maybe be an increase in memory usage
     OutputType L_internal[(RowsColsA * RowsColsA - RowsColsA) / 2];
+#pragma HLS ARRAY_PARTITION variable=L_internal cyclic factor=4 dim=1
     typename CholeskyTraits::RECIP_DIAG_T diag_internal[RowsColsA];
+#pragma HLS ARRAY_PARTITION variable=diag_internal complete dim=1
 
     typename CholeskyTraits::ACCUM_T square_sum;
     typename CholeskyTraits::ACCUM_T A_cast_to_sum;
@@ -533,12 +540,11 @@ int choleskyAlt2(const InputType A[RowsColsA][RowsColsA], OutputType L[RowsColsA
     typename CholeskyTraits::OFF_DIAG_T new_L_off_diag;
     typename CholeskyTraits::L_OUTPUT_T new_L;
 
-#pragma HLS ARRAY_PARTITION variable = A cyclic dim = CholeskyTraits::UNROLL_DIM factor = CholeskyTraits::UNROLL_FACTOR
-#pragma HLS ARRAY_PARTITION variable = L cyclic dim = CholeskyTraits::UNROLL_DIM factor = CholeskyTraits::UNROLL_FACTOR
-#pragma HLS ARRAY_PARTITION variable = L_internal cyclic dim = CholeskyTraits::UNROLL_DIM factor = \
-    CholeskyTraits::UNROLL_FACTOR
-#pragma HLS ARRAY_PARTITION variable = square_sum_array cyclic dim = 1 factor = CholeskyTraits::UNROLL_FACTOR
-#pragma HLS ARRAY_PARTITION variable = product_sum_array cyclic dim = 1 factor = CholeskyTraits::UNROLL_FACTOR
+#pragma HLS ARRAY_PARTITION variable = A complete dim = CholeskyTraits::UNROLL_DIM
+#pragma HLS ARRAY_PARTITION variable = L complete dim = CholeskyTraits::UNROLL_DIM
+#pragma HLS ARRAY_PARTITION variable = L_internal complete dim = CholeskyTraits::UNROLL_DIM
+#pragma HLS ARRAY_PARTITION variable = square_sum_array complete dim = 1
+#pragma HLS ARRAY_PARTITION variable = product_sum_array complete dim = 1
 
 col_loop:
     for (int j = 0; j < RowsColsA; j++) {

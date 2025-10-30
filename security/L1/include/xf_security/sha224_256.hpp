@@ -548,13 +548,15 @@ inline void generateMsgSchedule(hls::stream<SHA256Block>& blk_strm,
         LOOP_SHA256_PREPARE_WT64:
             for (short t = 16; t < 64; ++t) {
 #pragma HLS pipeline II = 1
-                // uint32_t Wt = SSIG1(W[t - 2]) + W[t - 7] + SSIG0(W[t - 15]) + W[t - 16];
-                // W[t] = Wt;
-                uint32_t Wt = SSIG1(W[14]) + W[9] + SSIG0(W[1]) + W[0];
-                for (unsigned char j = 0; j < 15; ++j) {
-                    W[j] = W[j + 1];
-                }
-                W[15] = Wt;
+                // 优化：使用环形缓冲区索引，避免手动数组移位
+                unsigned char idx = t & 0xF;  // t mod 16，环形索引
+                unsigned char idx_2 = (idx + 14) & 0xF;   // t-2 mod 16
+                unsigned char idx_7 = (idx + 9) & 0xF;    // t-7 mod 16
+                unsigned char idx_15 = (idx + 1) & 0xF;   // t-15 mod 16
+                unsigned char idx_16 = idx;               // t-16 mod 16
+
+                uint32_t Wt = SSIG1(W[idx_2]) + W[idx_7] + SSIG0(W[idx_15]) + W[idx_16];
+                W[idx] = Wt;
                 w_strm.write(Wt);
             }
         }
@@ -779,7 +781,7 @@ inline void sha256_top(hls::stream<ap_uint<m_width> >& msg_strm,
 
     /// W, 64 items for each block
     hls::stream<uint32_t> w_strm("w_strm");
-#pragma HLS STREAM variable = w_strm depth = 32
+#pragma HLS STREAM variable = w_strm depth = 64
 #pragma HLS RESOURCE variable = w_strm core = FIFO_LUTRAM
 
     // Generate block stream
