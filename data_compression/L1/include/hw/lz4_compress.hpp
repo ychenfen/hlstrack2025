@@ -58,7 +58,7 @@ static void lz4CompressPart1(hls::stream<ap_uint<32> >& inStream,
 lz4_divide:
     for (uint32_t i = 0; i < input_size;) {
 #pragma HLS PIPELINE II = 1
-#pragma HLS UNROLL factor=2
+#pragma HLS UNROLL factor=4
         ap_uint<32> tmpEncodedValue = nextEncodedValue;
         if (i < (input_size - 1)) nextEncodedValue = inStream.read();
         uint8_t tCh = tmpEncodedValue.range(7, 0);
@@ -125,7 +125,7 @@ static void lz4CompressPart2(hls::stream<uint8_t>& in_lit_inStream,
 lz4_compress:
     for (uint32_t inIdx = 0; (inIdx < input_size) || (!readOffsetFlag);) {
 #pragma HLS PIPELINE II = 1
-#pragma HLS UNROLL factor=2
+#pragma HLS UNROLL factor=4
         ap_uint<8> outValue;
         ap_uint<64> nextLenOffsetValue;
 
@@ -268,11 +268,11 @@ static void lz4Compress(hls::stream<ap_uint<32> >& inStream,
     hls::stream<ap_uint<64> > lenOffset_Stream("lenOffset_Stream");
 
 // 优化：限制 lit_outStream 最大深度，使用 BRAM 实现
-#pragma HLS STREAM variable = lit_outStream depth = 1024
+#pragma HLS STREAM variable = lit_outStream depth = 2048
 #pragma HLS BIND_STORAGE variable = lit_outStream type = FIFO impl = BRAM
 
 // 优化：增加 lenOffset_Stream 深度以减少阻塞
-#pragma HLS STREAM variable = lenOffset_Stream depth = 128
+#pragma HLS STREAM variable = lenOffset_Stream depth = 256
 #pragma HLS BIND_STORAGE variable = lenOffset_Stream type = FIFO impl = SRL
 
 #pragma HLS dataflow
@@ -303,9 +303,9 @@ void hlsLz4Core(hls::stream<data_t>& inStream,
     hls::stream<ap_uint<32> > bestMatchStream("bestMatchStream");
     hls::stream<ap_uint<32> > boosterStream("boosterStream");
 // 优化：增加流深度以提高吞吐量
-#pragma HLS STREAM variable = compressdStream depth = 64
-#pragma HLS STREAM variable = bestMatchStream depth = 64
-#pragma HLS STREAM variable = boosterStream depth = 64
+#pragma HLS STREAM variable = compressdStream depth = 128
+#pragma HLS STREAM variable = bestMatchStream depth = 128
+#pragma HLS STREAM variable = boosterStream depth = 128
 
 #pragma HLS BIND_STORAGE variable = compressdStream type = FIFO impl = SRL
 #pragma HLS BIND_STORAGE variable = bestMatchStream type = FIFO impl = SRL

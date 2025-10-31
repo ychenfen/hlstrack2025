@@ -1,0 +1,57 @@
+# Vitis HLS project files
+*.log
+*.jou
+*.rpt
+*.rpt.html
+*.prj/
+*.xpe
+*.xml
+*.apinfo
+solution*/
+sim/build/
+impl/verilog/
+impl/ HW/
+*.g
+*.bc
+*.o
+*.out
+*.exe
+*.app
+*.tcl
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*~
+
+# Report files
+csynth.log
+cosim.log
+csim.log
+*.log
+reports/csim.rpt
+reports/cosim.rpt
+reports/csynth.rpt
+
+# Build artifacts
+build/
+dist/
+*.o
+*.so
+*.dll
+*.dylib
+

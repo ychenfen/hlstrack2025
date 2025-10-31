@@ -548,6 +548,7 @@ inline void generateMsgSchedule(hls::stream<SHA256Block>& blk_strm,
         LOOP_SHA256_PREPARE_WT64:
             for (short t = 16; t < 64; ++t) {
 #pragma HLS pipeline II = 1
+#pragma HLS UNROLL factor=2
                 // 优化：使用环形缓冲区索引，避免手动数组移位
                 unsigned char idx = t & 0xF;  // t mod 16，环形索引
                 unsigned char idx_2 = (idx + 14) & 0xF;   // t-2 mod 16
@@ -683,6 +684,7 @@ LOOP_SHA256_DIGEST_MAIN:
         LOOP_SHA256_UPDATE_64_ROUNDS:
             for (short t = 0; t < 64; ++t) {
 #pragma HLS pipeline II = 1
+#pragma HLS UNROLL factor=2
                 sha256_iter(a, b, c, d, e, f, g, h, w_strm, Kt, K, t);
             } // 64 round loop
 
@@ -781,7 +783,7 @@ inline void sha256_top(hls::stream<ap_uint<m_width> >& msg_strm,
 
     /// W, 64 items for each block
     hls::stream<uint32_t> w_strm("w_strm");
-#pragma HLS STREAM variable = w_strm depth = 64
+#pragma HLS STREAM variable = w_strm depth = 128
 #pragma HLS RESOURCE variable = w_strm core = FIFO_LUTRAM
 
     // Generate block stream

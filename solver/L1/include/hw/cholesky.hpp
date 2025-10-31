@@ -159,7 +159,7 @@ struct choleskyTraits<LowerTriangularL,
         L_OUTPUT_T; // Takes new L value.  Same as L output but saturation set
     static const int ARCH = 2;
     static const int INNER_II = 1;
-    static const int UNROLL_FACTOR = 4;
+    static const int UNROLL_FACTOR = 8;
     static const int UNROLL_DIM = (LowerTriangularL == true ? 1 : 2);
     static const int ARCH2_ZERO_LOOP = true;
 };
@@ -196,7 +196,7 @@ struct choleskyTraits<LowerTriangularL,
         L_OUTPUT_T; // Takes new L value.  Same as L output but saturation set
     static const int ARCH = 2;
     static const int INNER_II = 1;
-    static const int UNROLL_FACTOR = 4;
+    static const int UNROLL_FACTOR = 8;
     static const int UNROLL_DIM = (LowerTriangularL == true ? 1 : 2);
     static const int ARCH2_ZERO_LOOP = true;
 };
@@ -545,6 +545,8 @@ int choleskyAlt2(const InputType A[RowsColsA][RowsColsA], OutputType L[RowsColsA
 #pragma HLS ARRAY_PARTITION variable = L_internal complete dim = CholeskyTraits::UNROLL_DIM
 #pragma HLS ARRAY_PARTITION variable = square_sum_array complete dim = 1
 #pragma HLS ARRAY_PARTITION variable = product_sum_array complete dim = 1
+#pragma HLS ARRAY_PARTITION variable = A cyclic factor=2 dim=1
+#pragma HLS ARRAY_PARTITION variable = A cyclic factor=2 dim=2
 
 col_loop:
     for (int j = 0; j < RowsColsA; j++) {
@@ -595,6 +597,7 @@ col_loop:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS PIPELINE II = CholeskyTraits::INNER_II
 #pragma HLS UNROLL FACTOR = CholeskyTraits::UNROLL_FACTOR
+#pragma HLS DEPENDENCE variable=product_sum_array intraWAR false
 
                 if (i > j) {
                     prod = L_internal[i][k] * prod_column_top;
